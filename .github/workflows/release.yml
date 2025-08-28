@@ -23,7 +23,7 @@ jobs:
             - name: Setup Rokit
               uses: CompeyDev/setup-rokit@v0.1.0
 
-            - name: Build rbxm
+            - name: Compile project
               run: lune run compile --release --zip
 
             - name: linux-aarch64
