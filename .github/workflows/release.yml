@@ -27,16 +27,16 @@ jobs:
               run: lune run compile --release --zip
 
             - name: linux-aarch64
-              run: gh release upload ${{github.event.release.tag_name}} build/bin/rmake_linux-aarch64.zip
+              run: gh release upload ${{github.event.release.tag_name}} build/rmake_linux-aarch64.zip
 
             - name: linux-x86_64
-              run: gh release upload ${{github.event.release.tag_name}} build/bin/rmake_linux-x86_64.zip
+              run: gh release upload ${{github.event.release.tag_name}} build/rmake_linux-x86_64.zip
 
             - name: macos-aarch64
-              run: gh release upload ${{github.event.release.tag_name}} build/bin/rmake_macos-aarch64.zip
+              run: gh release upload ${{github.event.release.tag_name}} build/rmake_macos-aarch64.zip
 
             - name: macos-x86_64
-              run: gh release upload ${{github.event.release.tag_name}} build/bin/rmake_macos-x86_64.zip
+              run: gh release upload ${{github.event.release.tag_name}} build/rmake_macos-x86_64.zip
 
             - name: windows-x86_64
-              run: gh release upload ${{github.event.release.tag_name}} build/bin/rmake_windows-x86_64.zip
+              run: gh release upload ${{github.event.release.tag_name}} build/rmake_windows-x86_64.zip
