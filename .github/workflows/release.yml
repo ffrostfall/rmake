@@ -9,31 +9,31 @@ permissions:
 
 jobs:
     upload-build:
-    runs-on: ubuntu-latest
+        runs-on: ubuntu-latest
 
-    steps:
-        - name: Checkout
-          uses: actions/checkout@v4
-          with:
-              repository: ffrostfall/rmake
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v4
+              with:
+                  repository: ffrostfall/rmake
 
-        - name: Setup Rokit
-          uses: CompeyDev/setup-rokit@v0.1.0
+            - name: Setup Rokit
+              uses: CompeyDev/setup-rokit@v0.1.0
 
-        - name: Build rbxm
-          run: lune run compile --release --zip
+            - name: Build rbxm
+              run: lune run compile --release --zip
 
-        - name: linux-aarch64
-          run: gh release upload ${{github.event.release.tag_name}} build/rmake_linux-aarch64.zip
+            - name: linux-aarch64
+              run: gh release upload ${{github.event.release.tag_name}} build/rmake_linux-aarch64.zip
 
-        - name: linux-x86_64
-          run: gh release upload ${{github.event.release.tag_name}} build/rmake_linux-x86_64.zip
+            - name: linux-x86_64
+              run: gh release upload ${{github.event.release.tag_name}} build/rmake_linux-x86_64.zip
 
-        - name: macos-aarch64
-          run: gh release upload ${{github.event.release.tag_name}} build/rmake_macos-aarch64.zip
+            - name: macos-aarch64
+              run: gh release upload ${{github.event.release.tag_name}} build/rmake_macos-aarch64.zip
 
-        - name: macos-x86_64
-          run: gh release upload ${{github.event.release.tag_name}} build/rmake_macos-x86_64.zip
+            - name: macos-x86_64
+              run: gh release upload ${{github.event.release.tag_name}} build/rmake_macos-x86_64.zip
 
-        - name: windows-x86_64
-          run: gh release upload ${{github.event.release.tag_name}} build/rmake_windows-x86_64.zip
+            - name: windows-x86_64
+              run: gh release upload ${{github.event.release.tag_name}} build/rmake_windows-x86_64.zip
