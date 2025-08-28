@@ -49,7 +49,7 @@ local function zip(ctx: BuildContext, path: string, output: string)
 	if process.os == "windows" then
 		execute(ctx, "Compress-Archive", { "-Path", `"{path}"`, "-DestinationPath", `"build/{output}.zip"` })
 	else
-		execute(ctx, "zip", { "-r", output, path })
+		execute(ctx, "zip", { `"build/{output}.zip"`, path })
 	end
 end
 
