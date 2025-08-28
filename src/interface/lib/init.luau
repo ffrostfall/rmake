@@ -22,7 +22,9 @@ local function lib(): typeof(definitions)
 		table.insert(project.place_decls, representation)
 	end
 
-	function api.declare_constant(name: string, constant: api.Place) end
+	function api.declare_constant(name: string, constant: api.Constant)
+		project.constant_decls[name] = constant
+	end
 
 	return api :: any
 end
