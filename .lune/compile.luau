@@ -1,5 +1,6 @@
 local build = require("@ext/build")
 local configure = require("@ext/configure")
+local fs = require("@lune/fs")
 local process = require("@lune/process")
 
 local args = {}
@@ -25,3 +26,5 @@ configure()
 
 build.init()
 build.executable(build_mode, with_zip, only_native_platform)
+
+print("- " .. table.concat(fs.readDir("build"), "\n- "))
