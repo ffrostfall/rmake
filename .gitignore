@@ -1,0 +1,8 @@
+# build directory
+build
+
+# included string for definitions
+included_definitions.luau
+
+# debug mode directories
+debug

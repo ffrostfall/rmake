@@ -1,0 +1,25 @@
+{
+	"bundle": {
+		"require_mode": "luau",
+		"excludes": ["@lune/**"]
+	},
+	"rules": [
+		{
+			"rule": "inject_global_value",
+			"identifier": "__ARCH",
+			"env": "BUILD_ARCH"
+		},
+		{
+			"rule": "inject_global_value",
+			"identifier": "__OS",
+			"env": "BUILD_OS"
+		},
+		{
+			"rule": "inject_global_value",
+			"identifier": "__MODE",
+			"env": "BUILD_MODE"
+		},
+
+		"remove_empty_do"
+	]
+}
