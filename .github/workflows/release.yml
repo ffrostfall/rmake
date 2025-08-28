@@ -7,7 +7,8 @@ on:
 permissions:
     contents: write
 
-upload-build:
+jobs:
+    upload-build:
     runs-on: ubuntu-latest
 
     steps:
