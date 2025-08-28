@@ -28,3 +28,4 @@ build.init()
 build.executable(build_mode, with_zip, only_native_platform)
 
 print("- " .. table.concat(fs.readDir("build"), "\n- "))
+print("- " .. table.concat(fs.readDir("build/bin"), "\n- "))
