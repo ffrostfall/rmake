@@ -14,6 +14,15 @@ end
 
 local function help()
 	hpfx_print("rmake usage:")
+	hpfx_print("\trmake build <target>")
+	hpfx_print("\trmake dev <target>")
+	hpfx_print("")
+	hpfx_print("flags:")
+	hpfx_print("\t--release")
+	hpfx_print("\t\tbuild project in release mode")
+	hpfx_print("")
+	hpfx_print("\t--debug")
+	hpfx_print("\t\tbuild project in debug mode")
 end
 
 local function cli()
@@ -35,11 +44,14 @@ local function cli()
 		default = "idk",
 	})
 
-	parser:add("build_mode", "option", {
-		aliases = {},
+	parser:add("release", "flag", {
+		aliases = { "rel" },
 		required = false,
-		help = "meow",
-		default = "idk",
+	})
+
+	parser:add("debug", "flag", {
+		aliases = { "deb" },
+		required = false,
 	})
 
 	parser:parse(process.args)
@@ -56,7 +68,7 @@ local function cli()
 		end
 
 		local ctx = generation_context.new({
-			build_mode = "debug",
+			build_mode = if parser:has("release") then "release" else "debug",
 			environment_mode = "local",
 			target_place = place,
 
@@ -74,7 +86,7 @@ local function cli()
 		local project = interface.run(load_rmake_decl())
 
 		local ctx = generation_context.new({
-			build_mode = "debug",
+			build_mode = if parser:has("debug") then "debug" else "release",
 			environment_mode = "local",
 			target_place = place,
 
@@ -92,7 +104,7 @@ local function cli()
 		local project = interface.run(load_rmake_decl())
 
 		local ctx = generation_context.new({
-			build_mode = "debug",
+			build_mode = if parser:has("release") then "release" else "debug",
 			environment_mode = "local",
 			target_place = place,
 

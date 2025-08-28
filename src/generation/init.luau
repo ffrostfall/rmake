@@ -11,7 +11,6 @@ local exec_process = require("@src/external/exec_process")
 local execute = require("@src/external/execute")
 local util_download_place = require("@src/external/util_download_place")
 local reconcile_directories = require("@src/generation/util/reconcile_directories")
-local global_types = require("@src/global_types")
 local get_files_under_dir = require("@src/util/get_files_under_dir")
 local log = require("@src/util/log")
 local run_on_dir_changed = require("@src/util/run_on_dir_changed")
@@ -38,7 +37,7 @@ local function processing_project_file(ctx: generation_context.Identity, array: 
 	end)
 end
 
-local function darklua_config(ctx: generation_context.Identity, array: ActionArray, trivial_rules: { string })
+local function darklua_config(ctx: generation_context.Identity, array: ActionArray)
 	log.debug(`initial: darklua_config`)
 
 	table.insert(array, function()
@@ -91,9 +90,22 @@ local function darklua_config(ctx: generation_context.Identity, array: ActionArr
 			},
 		})
 
-		for _, trivial_rule in trivial_rules do
-			table.insert(config.process, trivial_rule)
+		if ctx.params.build_mode == "release" then
+			table.insert(config.process, {
+				rule = "rename_variables",
+				include_functions = true,
+				globals = { "$default", "$roblox" },
+			})
 		end
+
+		table.insert(config.process, "convert_square_root_call")
+
+		-- dead code elimination
+		table.insert(config.process, "compute_expression")
+		table.insert(config.process, "remove_unused_if_branch")
+		table.insert(config.process, "remove_unused_variable")
+		table.insert(config.process, "filter_after_early_return")
+		table.insert(config.process, "remove_empty_do")
 
 		virtual_fs.write(ctx:darklua_config_path(), serde.encode("json", config))
 	end)
