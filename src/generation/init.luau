@@ -190,9 +190,9 @@ local function blink(ctx: generation_context.Identity, array: ActionArray)
 		local contents = {}
 
 		table.insert(contents, "option Casing = Snake")
-		table.insert(contents, `option TypesOutput = "{ctx:place_fs_path() .. "net"}/net_types.luau"`)
-		table.insert(contents, `option ServerOutput = "{ctx:place_fs_path() .. "net"}/net_server.luau"`)
-		table.insert(contents, `option ClientOutput = "{ctx:place_fs_path() .. "net"}/net_client.luau"`)
+		table.insert(contents, `option TypesOutput = "{ctx:place_fs_path() .. "net"}/types.luau"`)
+		table.insert(contents, `option ServerOutput = "{ctx:place_fs_path() .. "net"}/server.luau"`)
+		table.insert(contents, `option ClientOutput = "{ctx:place_fs_path() .. "net"}/client.luau"`)
 
 		for _, import_path in ctx.place_representation.config.network_directories do
 			log.trace(`getting .blink files under {ctx:root_path() .. import_path}`)
