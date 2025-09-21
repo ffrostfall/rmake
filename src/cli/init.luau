@@ -4,25 +4,12 @@ local load_rmake_decl = require("@src/discovery/load_rmake_decl")
 local generation = require("@src/generation")
 local generation_context = require("@src/generation/generation_context")
 local interface = require("@src/interface")
-local styling = require("@src/styling")
+local styling = require("@src/util/styling")
 local cli_parser = require("@src/util/cli_parser")
 local help_color = styling.color.magenta_bright
 
 local function hpfx_print(text: string)
 	print(help_color(`{styling.modifier.bold("[help]")} {text}`))
-end
-
-local function help()
-	hpfx_print("rmake usage:")
-	hpfx_print("\trmake build <target>")
-	hpfx_print("\trmake dev <target>")
-	hpfx_print("")
-	hpfx_print("flags:")
-	hpfx_print("\t--release")
-	hpfx_print("\t\tbuild project in release mode")
-	hpfx_print("")
-	hpfx_print("\t--debug")
-	hpfx_print("\t\tbuild project in debug mode")
 end
 
 local function cli()
@@ -117,7 +104,7 @@ local function cli()
 	elseif subcommand == "setup" then
 		setup()
 	else
-		help()
+		print(parser:help())
 	end
 end
 

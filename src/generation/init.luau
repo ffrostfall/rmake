@@ -5,15 +5,11 @@ local serde = require("@lune/serde")
 local task = require("@lune/task")
 local generation_context = require("@self/generation_context")
 local virtual_fs = require("@self/virtual_fs")
-local rmake_config = require("@src/discovery/rmake_config")
-local exec_network = require("@src/external/exec_network")
-local exec_process = require("@src/external/exec_process")
-local execute = require("@src/external/execute")
-local util_download_place = require("@src/external/util_download_place")
 local reconcile_directories = require("@src/generation/util/reconcile_directories")
 local get_files_under_dir = require("@src/util/get_files_under_dir")
 local log = require("@src/util/log")
 local run_on_dir_changed = require("@src/util/run_on_dir_changed")
+local external_actions = require("@self/external_actions")
 
 type ActionArray = { () -> () }
 
@@ -141,8 +137,8 @@ local function install_dependencies(ctx: generation_context.Identity, array: Act
 	table.insert(array, function()
 		log.debug(`evaluating: install_dependencies`)
 
-		execute(exec_process.wally_install())
-		execute(exec_process.wally_patch_package())
+		external_actions.wally_install()
+		external_actions.wally_patch_package()
 
 		local project_file_json = {
 			name = "packages",
@@ -171,18 +167,24 @@ local function install_dependencies(ctx: generation_context.Identity, array: Act
 
 		virtual_fs.write(ctx:project_file_path("packages"), serde.encode("json", project_file_json))
 
-		execute(exec_process.rojo_sourcemap(ctx:project_file_path("packages"), ctx:sourcemap_path("packages")))
+		external_actions.rojo_sourcemap(ctx:project_file_path("packages"), ctx:sourcemap_path("packages"))
 
 		if fs.readDir("Packages") then
-			execute((exec_process.wally_package_types(ctx:sourcemap_path("packages"), "Packages")))
+			external_actions.wally_pkg_types(ctx:sourcemap_path("packages"), "Packages")
+		end
+
+		if fs.isDir("ServerPackages") then
+			external_actions.wally_pkg_types(ctx:sourcemap_path("packages"), "ServerPackages")
+		end
+
+		if fs.isDir("DevPackages") then
+			external_actions.wally_pkg_types(ctx:sourcemap_path("packages"), "DevPackages")
 		end
 	end)
 end
 
 local function blink(ctx: generation_context.Identity, array: ActionArray)
 	log.debug(`initial: blink`)
-
-	install_dependencies(ctx, array)
 
 	table.insert(array, function()
 		log.debug(`evaluating: blink`)
@@ -207,16 +209,14 @@ local function blink(ctx: generation_context.Identity, array: ActionArray)
 
 		virtual_fs.write(ctx:blink_path(), table.concat(contents, "\n"))
 
-		local command = exec_process.blink(ctx:blink_path())
-
 		if ctx.params.subcommand == "dev-server" then
-			table.insert(command.args, "--watch")
+			external_actions.blink(ctx:blink_path(), false)
 
 			task.spawn(function()
-				execute(command)
+				external_actions.blink(ctx:blink_path(), true)
 			end)
 		else
-			execute(command)
+			external_actions.blink(ctx:blink_path(), false)
 		end
 	end)
 end
@@ -254,28 +254,18 @@ local function processing_sourcemap(ctx: generation_context.Identity, array: Act
 	table.insert(array, function()
 		log.debug(`evaluating: processing_sourcemap`)
 
-		local command =
-			exec_process.rojo_sourcemap(ctx:project_file_path("processing"), ctx:sourcemap_path("processing"))
-
 		if ctx.params.subcommand == "dev-server" then
-			table.insert(command.args, "--watch")
-
-			local editor_sourcemap_command =
-				exec_process.rojo_sourcemap(ctx:project_file_path("processing"), ctx:sourcemap_path("editor"))
-
-			table.insert(editor_sourcemap_command.args, "--watch")
-
 			task.spawn(function()
-				execute(command)
+				external_actions.rojo_sourcemap(ctx:project_file_path("processing"), ctx:sourcemap_path("editor"))
 			end)
 
 			task.spawn(function()
-				execute(editor_sourcemap_command)
+				external_actions.rojo_sourcemap(ctx:project_file_path("processing"), ctx:sourcemap_path("processing"))
 			end)
 
-			task.wait(0.1)
+			task.wait(0.15)
 		else
-			execute(command)
+			external_actions.rojo_sourcemap(ctx:project_file_path("processing"), ctx:sourcemap_path("processing"))
 		end
 	end)
 end
@@ -291,18 +281,20 @@ local function darklua(ctx: generation_context.Identity, array: ActionArray)
 		log.debug(`evaluating: darklua`)
 
 		for _, source_path in ctx.place_representation.config.sources do
-			local command = exec_process.darklua_process(
-				ctx:root_path() .. source_path,
-				ctx:place_fs_path() .. source_path,
-				ctx:darklua_config_path()
-			)
-
 			if ctx.params.subcommand == "dev-server" then
 				run_on_dir_changed(source_path, function()
-					execute(command)
+					external_actions.darklua(
+						ctx:root_path() .. source_path,
+						ctx:place_fs_path() .. source_path,
+						ctx:darklua_config_path()
+					)
 				end)
 			else
-				execute(command)
+				external_actions.darklua(
+					ctx:root_path() .. source_path,
+					ctx:place_fs_path() .. source_path,
+					ctx:darklua_config_path()
+				)
 			end
 		end
 	end)
@@ -318,11 +310,7 @@ local function rojo_serve(ctx: generation_context.Identity, array: ActionArray)
 	table.insert(array, function()
 		log.debug(`evaluating: rojo_serve`)
 
-		local command = exec_process.rojo_serve(ctx:project_file_path("build"))
-
-		task.spawn(function()
-			execute(command)
-		end)
+		external_actions.rojo_serve(ctx:project_file_path("build"))
 	end)
 end
 
@@ -334,25 +322,24 @@ local function rojo_build(ctx: generation_context.Identity, array: ActionArray)
 	build_project_file(ctx, array, ctx.place_representation.config.asset_directories)
 
 	table.insert(array, function()
-		log.debug(`evaluating: install_dependencies`)
+		log.debug(`evaluating: rojo_build`)
 
-		local command = exec_process.rojo_build(ctx:project_file_path("build"), ctx:rbxl_path("built"))
-
-		execute(command)
+		external_actions.rojo_build(ctx:project_file_path("build"), ctx:rbxl_path("built"))
 	end)
 end
 
 local function build_place(ctx: generation_context.Identity, array: ActionArray)
 	log.debug("calling: build_place")
 
+	install_dependencies(ctx, array)
 	rojo_build(ctx, array)
 
 	table.insert(array, function()
 		log.debug("eval: build_place")
 
 		local builder_ctx: api.BuilderContext = {
-			download_place = function(place_id)
-				local reply = util_download_place(place_id)
+			download_place = function(place_id: number)
+				local reply = external_actions.download_place_file(tostring(place_id), "")
 
 				assert(reply.ok)
 
@@ -370,8 +357,6 @@ end
 
 local function generation(ctx: generation_context.Identity)
 	-- Prep
-	rmake_config.init()
-
 	reconcile_directories({
 		ctx:build_fs_path(),
 		ctx:place_fs_path(),
@@ -384,15 +369,15 @@ local function generation(ctx: generation_context.Identity)
 	local array: ActionArray = {}
 
 	if ctx.params.subcommand == "push" then
-		local universe_id = rmake_config.get_id(ctx.params.environment_mode, "universe")
-		local place_id = rmake_config.get_id(ctx.params.environment_mode, ctx.place_representation.name)
+		local universe_id = "1"
+		local place_id = "2"
 
 		build_place(ctx, array)
 
 		table.insert(array, function()
 			local into = virtual_fs.rawread(ctx:rbxl_path("output"))
 
-			exec_network.upload_place(universe_id, place_id, into)
+			external_actions.upload_place_file(universe_id, place_id, into, "")
 		end)
 	elseif ctx.params.subcommand == "local-build" then
 		build_place(ctx, array)

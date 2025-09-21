@@ -1,5 +1,5 @@
 local error_type = require("./error_type")
-local styling = require("./styling")
+local styling = require("@src/util/styling")
 local process = require("@lune/process")
 
 local err_style = styling.combine_styles({ styling.color.red_bright, styling.modifier.bold })
@@ -7,10 +7,6 @@ local err_prefix = err_style("[ERR] ")
 
 local rt_err_style = styling.color.red
 local rt_trace_style = styling.color.blue
-
--- rmake push
--- rmake dev
--- rmake build
 
 type ErrMeta = {
 	trace: string,
@@ -99,25 +95,6 @@ local function display_generation_err(err: error_type.GenerationError, meta: Err
 	end
 end
 
-local function display_discovery_err(err: error_type.DiscoveryError, meta: ErrMeta)
-	if err.kind == "MissingRmakeDeclError" then
-		pfx_print("no rmake decl file found! create an rmake.luau file in your project root")
-	elseif err.kind == "FileIoError" then
-		pfx_print("unknown file io error occurred:")
-		pfx_print(`\t{err.err}`)
-		pfx_print("")
-		pfx_print(`internal io called at line {meta.line}`)
-	elseif err.kind == "ProjectFileMissingError" then
-		pfx_print("unimplemented error message")
-	elseif err.kind == "MissingSecretError" then
-		pfx_print("missing secret!")
-		pfx_print(`set the {err.secret_name} environment variable to the relevant API key`)
-	else
-		pfx_print(`uncaught discovery error`)
-		pfx_print(`kind: {err.kind}`)
-	end
-end
-
 local function display_rmake_err(err: error_type.RmakeError, meta: ErrMeta)
 	if err.kind == "NoPlaceWithAliasFoundError" then
 		pfx_print(`Invalid place selected: {err.input_alias}`)
@@ -150,8 +127,6 @@ local function display_error(err: error_type.Error | string)
 
 	if err.from == "Interface" then
 		display_interface_err(err, err_meta)
-	elseif err.from == "Discovery" then
-		display_discovery_err(err, err_meta)
 	elseif err.from == "Generation" then
 		display_generation_err(err, err_meta)
 	elseif err.from == "Rmake" then

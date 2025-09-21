@@ -1,7 +1,7 @@
 local fs = require("@lune/fs")
 local serde = require("@lune/serde")
 local included_definitions = require("@src/included_definitions")
-local styling = require("@src/styling")
+local styling = require("@src/util/styling")
 local user_path = require("@src/util/user_path")
 
 local setup_color = styling.color.blue_bright

@@ -1,4 +1,4 @@
-local styling = require("@src/styling")
+local styling = require("@src/util/styling")
 
 local debug_prefix_style = styling.combine_styles({ styling.color.grey, styling.modifier.bold })
 local debug_style = styling.color.grey
