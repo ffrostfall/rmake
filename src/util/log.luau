@@ -7,18 +7,34 @@ local trace_style = styling.color.white_bright
 local info_prefix_style = styling.combine_styles({ styling.color.magenta_bright, styling.modifier.bold })
 local info_style = styling.combine_styles({ styling.color.white_bright })
 
-local log = {}
+local log = {
+	level = 4,
+}
 
 function log.debug(text: string)
+	if log.level >= 1 then
+		return
+	end
+
 	print(debug_prefix_style("[DEBUG] ") .. debug_style(text))
 end
 
 function log.trace(text: string)
+	if log.level >= 2 then
+		return
+	end
+
 	print(trace_prefix_style("[TRACE] ") .. trace_style(text))
 end
 
 function log.info(text: string)
+	if log.level >= 3 then
+		return
+	end
+
 	print(info_prefix_style("[INFO] " .. info_style(text)))
 end
+
+function log.warn(text: string) end
 
 return log

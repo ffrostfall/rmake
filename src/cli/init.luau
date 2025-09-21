@@ -1,11 +1,12 @@
+local fs = require("@lune/fs")
 local process = require("@lune/process")
 local setup = require("@src/cli/setup")
-local load_rmake_decl = require("@src/discovery/load_rmake_decl")
 local generation = require("@src/generation")
 local generation_context = require("@src/generation/generation_context")
 local interface = require("@src/interface")
 local styling = require("@src/util/styling")
 local cli_parser = require("@src/util/cli_parser")
+local log = require("@src/util/log")
 local help_color = styling.color.magenta_bright
 
 local function hpfx_print(text: string)
@@ -41,12 +42,22 @@ local function cli()
 		required = false,
 	})
 
+	parser:add("verbose", "flag", {
+		aliases = { "v" },
+		required = false,
+	})
+
 	parser:parse(process.args)
+
+	if parser:has("verbose") then
+		log.info("verbose mode enabled")
+		log.level = 0
+	end
 
 	local subcommand = parser:get("subcommand")
 
 	if subcommand == "dev" then
-		local project = interface.run(load_rmake_decl())
+		local project = interface.run(fs.readFile("./rmake.luau"))
 
 		local place = parser:get("target")
 		if not place then
@@ -70,7 +81,7 @@ local function cli()
 			return
 		end
 
-		local project = interface.run(load_rmake_decl())
+		local project = interface.run(fs.readFile("./rmake.luau"))
 
 		local ctx = generation_context.new({
 			build_mode = if parser:has("debug") then "debug" else "release",
@@ -88,7 +99,7 @@ local function cli()
 			return
 		end
 
-		local project = interface.run(load_rmake_decl())
+		local project = interface.run(fs.readFile("./rmake.luau"))
 
 		local ctx = generation_context.new({
 			build_mode = if parser:has("release") then "release" else "debug",
