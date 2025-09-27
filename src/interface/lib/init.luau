@@ -13,7 +13,7 @@ local function lib(): typeof(definitions)
 		_internal = project,
 	}
 
-	function api.declare_place(name: string, place: api.Place)
+	function api.declare_place(name: string, place: api.Rbxl)
 		local representation: global_types.PlaceRepresentation = {
 			name = name,
 			config = place,

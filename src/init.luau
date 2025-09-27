@@ -24,8 +24,8 @@ local function render_internal_error(err: string, level: number)
 
 	local lines = {
 		"internal rmake error:",
-		"",
 		`\t{styling.color.red(err)}`,
+		"",
 	}
 
 	for i, value in string.split(trace, "\n") do
@@ -33,12 +33,10 @@ local function render_internal_error(err: string, level: number)
 			continue
 		end
 
-		value = string.gsub(value, "src/generation:", "src/generation/init.luau:")
+		value = string.gsub(value, "/(%w+):", "/%1/init.luau:")
 
 		table.insert(lines, `\t{styling.color.blue(value)}`)
 	end
-
-	table.insert(lines, "contact ffrostfall ig")
 
 	for _, line in lines do
 		pfx_print(line)
@@ -47,15 +45,11 @@ end
 
 local success = xpcall(cli, function(err)
 	if type(err) == "string" or type(err) == "userdata" then
-		render_internal_error(tostring(err), 3)
+		render_internal_error(tostring(err), 2)
 		return
 	end
 
-	err = err :: error_type.Error
-
-	pfx_print(`uncaught internal error`)
-	pfx_print(`from: {err.from}`)
-	pfx_print(`kind: {err.kind}`)
+	print("exception called with unknown error type")
 end)
 
 if not success then

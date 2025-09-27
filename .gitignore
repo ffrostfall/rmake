@@ -1,5 +1,5 @@
 # build directory
-build
+/build
 
 # included string for definitions
 included_definitions.luau

@@ -3,17 +3,28 @@ local fs = require("@lune/fs")
 local roblox = require("@lune/roblox")
 local serde = require("@lune/serde")
 local task = require("@lune/task")
-local generation_context = require("@self/generation_context")
+local target_context = require("@self/target_context")
 local virtual_fs = require("@self/virtual_fs")
-local reconcile_directories = require("@src/generation/util/reconcile_directories")
 local get_files_under_dir = require("@src/util/get_files_under_dir")
 local log = require("@src/util/log")
 local run_on_dir_changed = require("@src/util/run_on_dir_changed")
-local external_actions = require("@self/external_actions")
+local external_actions = require("@src/external_actions")
 
 type ActionArray = { () -> () }
 
-local function processing_project_file(ctx: generation_context.Identity, array: ActionArray)
+local function reconcile_directories(directories: { string })
+	table.sort(directories, function(l, r): boolean
+		return string.len(l) < string.len(r)
+	end)
+
+	for _, path in directories do
+		if not fs.isDir(path) then
+			fs.writeDir(path)
+		end
+	end
+end
+
+local function processing_project_file(ctx: target_context.Identity, array: ActionArray)
 	log.debug(`initial: processing_project_file`)
 
 	table.insert(array, function()
@@ -33,7 +44,7 @@ local function processing_project_file(ctx: generation_context.Identity, array: 
 	end)
 end
 
-local function darklua_config(ctx: generation_context.Identity, array: ActionArray)
+local function darklua_config(ctx: target_context.Identity, array: ActionArray)
 	log.debug(`initial: darklua_config`)
 
 	table.insert(array, function()
@@ -86,14 +97,6 @@ local function darklua_config(ctx: generation_context.Identity, array: ActionArr
 			},
 		})
 
-		if ctx.params.build_mode == "release" then
-			table.insert(config.process, {
-				rule = "rename_variables",
-				include_functions = true,
-				globals = { "$default", "$roblox" },
-			})
-		end
-
 		table.insert(config.process, "convert_square_root_call")
 
 		-- dead code elimination
@@ -107,7 +110,7 @@ local function darklua_config(ctx: generation_context.Identity, array: ActionArr
 	end)
 end
 
-local function build_project_file(ctx: generation_context.Identity, array: ActionArray, exclude_directories: { string })
+local function build_project_file(ctx: target_context.Identity, array: ActionArray, exclude_directories: { string })
 	log.debug(`initial: build_project_file`)
 
 	table.insert(array, function()
@@ -131,7 +134,7 @@ local function build_project_file(ctx: generation_context.Identity, array: Actio
 	end)
 end
 
-local function install_dependencies(ctx: generation_context.Identity, array: ActionArray)
+local function install_dependencies(ctx: target_context.Identity, array: ActionArray)
 	log.debug(`calling: install_dependencies`)
 
 	table.insert(array, function()
@@ -183,7 +186,7 @@ local function install_dependencies(ctx: generation_context.Identity, array: Act
 	end)
 end
 
-local function blink(ctx: generation_context.Identity, array: ActionArray)
+local function blink(ctx: target_context.Identity, array: ActionArray)
 	log.debug(`initial: blink`)
 
 	table.insert(array, function()
@@ -209,7 +212,7 @@ local function blink(ctx: generation_context.Identity, array: ActionArray)
 
 		virtual_fs.write(ctx:blink_path(), table.concat(contents, "\n"))
 
-		if ctx.params.subcommand == "dev-server" then
+		if ctx.subcommand == "dev-server" then
 			external_actions.blink(ctx:blink_path(), false)
 
 			task.spawn(function()
@@ -221,7 +224,7 @@ local function blink(ctx: generation_context.Identity, array: ActionArray)
 	end)
 end
 
-local function generate_declaration_file(ctx: generation_context.Identity, array: ActionArray)
+local function generate_declaration_file(ctx: target_context.Identity, array: ActionArray)
 	log.debug(`initial: generate_declaration_file`)
 
 	local open = "declare _G: {\n"
@@ -246,7 +249,7 @@ local function generate_declaration_file(ctx: generation_context.Identity, array
 	end)
 end
 
-local function processing_sourcemap(ctx: generation_context.Identity, array: ActionArray)
+local function processing_sourcemap(ctx: target_context.Identity, array: ActionArray)
 	log.debug(`initial: processing_sourcemap`)
 
 	processing_project_file(ctx, array)
@@ -254,7 +257,7 @@ local function processing_sourcemap(ctx: generation_context.Identity, array: Act
 	table.insert(array, function()
 		log.debug(`evaluating: processing_sourcemap`)
 
-		if ctx.params.subcommand == "dev-server" then
+		if ctx.subcommand == "dev-server" then
 			task.spawn(function()
 				external_actions.rojo_sourcemap(ctx:project_file_path("processing"), ctx:sourcemap_path("editor"))
 			end)
@@ -270,7 +273,7 @@ local function processing_sourcemap(ctx: generation_context.Identity, array: Act
 	end)
 end
 
-local function darklua(ctx: generation_context.Identity, array: ActionArray)
+local function darklua(ctx: target_context.Identity, array: ActionArray)
 	log.debug(`calling: darklua`)
 
 	darklua_config(ctx, array, { "remove_empty_do" })
@@ -281,7 +284,7 @@ local function darklua(ctx: generation_context.Identity, array: ActionArray)
 		log.debug(`evaluating: darklua`)
 
 		for _, source_path in ctx.place_representation.config.sources do
-			if ctx.params.subcommand == "dev-server" then
+			if ctx.subcommand == "dev-server" then
 				run_on_dir_changed(source_path, function()
 					external_actions.darklua(
 						ctx:root_path() .. source_path,
@@ -300,7 +303,7 @@ local function darklua(ctx: generation_context.Identity, array: ActionArray)
 	end)
 end
 
-local function rojo_serve(ctx: generation_context.Identity, array: ActionArray)
+local function rojo_serve(ctx: target_context.Identity, array: ActionArray)
 	log.debug(`calling: rojo_serve`)
 
 	blink(ctx, array)
@@ -314,7 +317,7 @@ local function rojo_serve(ctx: generation_context.Identity, array: ActionArray)
 	end)
 end
 
-local function rojo_build(ctx: generation_context.Identity, array: ActionArray)
+local function rojo_build(ctx: target_context.Identity, array: ActionArray)
 	log.debug(`calling: rojo_build`)
 
 	blink(ctx, array)
@@ -328,7 +331,7 @@ local function rojo_build(ctx: generation_context.Identity, array: ActionArray)
 	end)
 end
 
-local function build_place(ctx: generation_context.Identity, array: ActionArray)
+local function build_place(ctx: target_context.Identity, array: ActionArray)
 	log.debug("calling: build_place")
 
 	install_dependencies(ctx, array)
@@ -355,35 +358,30 @@ local function build_place(ctx: generation_context.Identity, array: ActionArray)
 	end)
 end
 
-local function generation(ctx: generation_context.Identity)
+local function generation(ctx: target_context.Identity)
 	-- Prep
-	reconcile_directories({
+	local to_reconcile = {
 		ctx:build_fs_path(),
 		ctx:place_fs_path(),
-	})
 
-	-- Populate
-	ctx.project.constant_decls["BUILD_MODE"] =
-		{ kind = "luau" :: "luau", type_str = '"debug" | "release"', value = ctx.params.build_mode } :: api.Constant
+		ctx:build_fs_path() .. "places",
+	}
+
+	for _, source_path in ctx.target_config.sources do
+		table.insert(to_reconcile, ctx:place_fs_path() .. source_path)
+	end
+
+	reconcile_directories(to_reconcile)
+
+	virtual_fs.init()
 
 	local array: ActionArray = {}
 
-	if ctx.params.subcommand == "push" then
-		local universe_id = "1"
-		local place_id = "2"
-
+	if ctx.subcommand == "build" then
 		build_place(ctx, array)
-
-		table.insert(array, function()
-			local into = virtual_fs.rawread(ctx:rbxl_path("output"))
-
-			external_actions.upload_place_file(universe_id, place_id, into, "")
-		end)
-	elseif ctx.params.subcommand == "local-build" then
-		build_place(ctx, array)
-	elseif ctx.params.subcommand == "dev-server" then
+	elseif ctx.subcommand == "dev-server" then
 		rojo_serve(ctx, array)
-	elseif ctx.params.subcommand == "install-dependencies" then
+	elseif ctx.subcommand == "install-dependencies" then
 		install_dependencies(ctx, array)
 	end
 

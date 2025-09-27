@@ -2,7 +2,7 @@ local fs = require("@lune/fs")
 local process = require("@lune/process")
 local setup = require("@src/cli/setup")
 local generation = require("@src/generation")
-local generation_context = require("@src/generation/generation_context")
+local target_context = require("@src/generation/target_context")
 local interface = require("@src/interface")
 local styling = require("@src/util/styling")
 local cli_parser = require("@src/util/cli_parser")
@@ -65,7 +65,7 @@ local function cli()
 			return
 		end
 
-		local ctx = generation_context.new({
+		local ctx = target_context.new({
 			build_mode = if parser:has("release") then "release" else "debug",
 			environment_mode = "local",
 			target_place = place,
@@ -83,7 +83,7 @@ local function cli()
 
 		local project = interface.run(fs.readFile("./rmake.luau"))
 
-		local ctx = generation_context.new({
+		local ctx = target_context.new({
 			build_mode = if parser:has("debug") then "debug" else "release",
 			environment_mode = "local",
 			target_place = place,
@@ -101,7 +101,7 @@ local function cli()
 
 		local project = interface.run(fs.readFile("./rmake.luau"))
 
-		local ctx = generation_context.new({
+		local ctx = target_context.new({
 			build_mode = if parser:has("release") then "release" else "debug",
 			environment_mode = "local",
 			target_place = place,

@@ -5,28 +5,24 @@
 	},
 
 	"stylua.targetReleaseVersion": "latest",
-	
+
 	"luau-lsp.fflags.enableNewSolver": true,
 	"luau-lsp.fflags.enableByDefault": true,
-	
+
 	"luau-lsp.completion.imports.enabled": true,
-	
+
 	"luau-lsp.platform.type": "standard",
 
 	// tabs over spaces
 	"editor.detectIndentation": false,
 	"editor.insertSpaces": false,
 	"prettier.useTabs": true,
-	
+
 	"luau-lsp.completion.imports.stringRequires.enabled": true,
-	
+
 	"luau-lsp.sourcemap.enabled": false,
-	
-	"luau-lsp.types.definitionFiles": [
-		"types/globals.d.luau",
-	],
-	
-	"luau-lsp.ignoreGlobs": [
-		"build/**"
-	]
+
+	"luau-lsp.types.definitionFiles": ["types/globals.d.luau"],
+
+	"luau-lsp.ignoreGlobs": ["build/**"]
 }

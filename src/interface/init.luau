@@ -1,6 +1,5 @@
 local luau = require("@lune/luau")
 local lib = require("@src/interface/lib")
-local error_type = require("@src/error_type")
 local global_types = require("@src/global_types")
 local log = require("@src/util/log")
 
