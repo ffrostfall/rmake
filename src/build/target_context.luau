@@ -1,3 +1,4 @@
+local api = require("@definitions/api")
 local process = require("@lune/process")
 local virtual_fs = require("./virtual_fs")
 
@@ -24,14 +25,10 @@ local metatable = { __index = target_context }
 export type Identity = setmetatable<{
 	identifier: string,
 	command: Command,
-
-	target_config: {
-		sources: { [string]: string },
-		project_file: string,
-	},
+	target_config: api.RbxlConfig,
 }, typeof(metatable)>
 
-local function constructor(command: Command, identifier: string): Identity
+local function constructor(command: Command, identifier: string, config: api.RbxlConfig): Identity
 	local self = setmetatable({}, metatable)
 
 	self.command = command

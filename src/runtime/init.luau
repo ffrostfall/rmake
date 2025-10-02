@@ -1,20 +1,9 @@
+local api = require("@definitions/api")
 local fs = require("@lune/fs")
 local luau = require("@lune/luau")
 local task = require("@lune/task")
-local declare_target = require("@src/runtime/public/declare_target")
-local rbxl = require("@src/runtime/public/rbxl")
-
-export type Ref<T> = number | { write __T: T }
-
-export type RbxlDeclaration = {}
-
-export type TargetDeclaration = {
-	uploads: {},
-}
-
-export type ProjectConfig = {
-	rbxl_decls: {},
-	target_decls: {},
+export type Project = {
+	rbxl_decls: { [string]: api.RbxlConfig },
 }
 
 local runtime = {}

@@ -55,7 +55,7 @@ local function darklua_config(ctx: target_context.Identity, array: ActionArray)
 		}
 
 		for name, value in ctx.project.constant_decls do
-			local injected_identifier = `__{string.upper(name)}`
+			local injected_identifier = `__{string.upper(ctx.identifier)}`
 
 			if value.kind == "env" then
 				table.insert(config.process, {
