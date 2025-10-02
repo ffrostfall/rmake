@@ -22,8 +22,12 @@ local rbxl = rmake.declare_rbxl({
 	},
 })
 
-rmake.declare_target("meow", function(ctx)
-	rbxl:set_constant_value("__BUILD_MODE", "debug")
+rmake.declare_target("meow", function(use)
+	local game = use(rbxl)
 
-	ctx.upload_rbxl(1, 2, rbxl, "meow")
+	game:set_constant_value("thing", 5)
+
+	game:add_darklua_rule("meow", 5)
+
+	game:link_to_place(123, 1234, "auth")
 end)

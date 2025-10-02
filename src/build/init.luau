@@ -377,11 +377,11 @@ local function generation(ctx: target_context.Identity)
 
 	local array: ActionArray = {}
 
-	if ctx.subcommand == "build" then
+	if ctx.command == "build" then
 		build_place(ctx, array)
-	elseif ctx.subcommand == "dev-server" then
+	elseif ctx.command == "dev-server" then
 		rojo_serve(ctx, array)
-	elseif ctx.subcommand == "install-dependencies" then
+	elseif ctx.command == "install-dependencies" then
 		install_dependencies(ctx, array)
 	end
 

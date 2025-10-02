@@ -3,13 +3,27 @@ local luau = require("@lune/luau")
 local task = require("@lune/task")
 local declare_target = require("@src/runtime/public/declare_target")
 local rbxl = require("@src/runtime/public/rbxl")
+
+export type Ref<T> = number | { write __T: T }
+
+export type RbxlDeclaration = {}
+
+export type TargetDeclaration = {
+	uploads: {},
+}
+
+export type ProjectConfig = {
+	rbxl_decls: {},
+	target_decls: {},
+}
+
 local runtime = {}
 
 function runtime.init()
 	local file_contents = fs.readFile("./rmake.luau")
 	local bytecode = luau.compile(file_contents)
 
-	local target_stuff = declare_target()
+	local targets = {}
 
 	local rmake_env = {
 		declare_target = target_stuff.f,

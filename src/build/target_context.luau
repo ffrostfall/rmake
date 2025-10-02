@@ -1,5 +1,4 @@
 local process = require("@lune/process")
-local global_types = require("@src/global_types")
 local virtual_fs = require("./virtual_fs")
 
 export type SourcemapType = "packages" | "processing" | "editor"
@@ -32,16 +31,15 @@ export type Identity = setmetatable<{
 	},
 }, typeof(metatable)>
 
-local function constructor(commmand: Command, project: global_types.Project, identifier: string): Identity
+local function constructor(command: Command, identifier: string): Identity
 	local self = setmetatable({}, metatable)
 
-	self.project = project
 	self.command = command
-	self.target_config = {
-		sources = project.place_decls[identifier],
-	}
+	self.identifier = identifier
 
-	virtual_fs.init()
+	self.target_config = {
+		sources = {},
+	}
 
 	return self
 end
@@ -54,7 +52,7 @@ function target_context.project_file_path(self: Identity, kind: ProjectFileType)
 	elseif kind == "build" then
 		return self:place_fs_path() .. "build.project.json"
 	elseif kind == "input" then
-		return self:root_path() .. self.place_representation.config.project_file_path
+		return self:root_path() .. self.target_config.project_file
 	end
 
 	return error("unreachable")
@@ -82,7 +80,7 @@ end
 
 function target_context.rbxl_path(self: Identity, kind: RbxlType)
 	if kind == "output" then
-		return self:build_fs_path() .. `{self.place_representation.name}.rbxl`
+		return self:build_fs_path() .. `{self.identifier}.rbxl`
 	elseif kind == "built" then
 		return self:place_fs_path() .. "build.rbxl"
 	elseif kind == "base" then
@@ -101,7 +99,7 @@ function target_context.build_fs_path(self: Identity): string
 end
 
 function target_context.place_fs_path(self: Identity): string
-	return absolute_from_cwd_relative(`build/places/{self.place_representation.name}/`)
+	return absolute_from_cwd_relative(`build/places/{self.identifier}/`)
 end
 
 function target_context.root_path(self: Identity): string
