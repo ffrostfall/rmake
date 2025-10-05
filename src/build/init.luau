@@ -32,7 +32,7 @@ local function processing_project_file(ctx: target_context.Identity, array: Acti
 
 		local input_project_file = virtual_fs.read(ctx:project_file_path("input"))
 
-		for source_name, source_path in ctx.place_representation.config.sources do
+		for source_name, source_path in ctx.target_config.sources do
 			input_project_file = string.gsub(input_project_file, `@{source_name}`, ctx:root_path() .. source_path)
 		end
 
@@ -54,35 +54,24 @@ local function darklua_config(ctx: target_context.Identity, array: ActionArray)
 			process = {} :: { any },
 		}
 
-		for name, value in ctx.project.constant_decls do
-			local injected_identifier = `__{string.upper(ctx.identifier)}`
+		for name, value in ctx.target_config.constants or {} do
+			local value_value_type = type(value.value)
 
-			if value.kind == "env" then
-				table.insert(config.process, {
-					rule = "inject_global_value",
-					identifier = injected_identifier,
-
-					env_json = name,
-				})
-			elseif value.kind == "luau" then
-				local value_value_type = type(value.value)
-
-				if
-					value_value_type ~= "number"
-					and value_value_type ~= "boolean"
-					and value_value_type ~= "table"
-					and value_value_type ~= "string"
-				then
-					error("meow")
-				end
-
-				table.insert(config.process, {
-					rule = "inject_global_value",
-					identifier = injected_identifier,
-
-					value = value.value,
-				})
+			if
+				value_value_type ~= "number"
+				and value_value_type ~= "boolean"
+				and value_value_type ~= "table"
+				and value_value_type ~= "string"
+			then
+				error("unsupported constant type")
 			end
+
+			table.insert(config.process, {
+				rule = "inject_global_value",
+				identifier = name,
+
+				value = value.value,
+			})
 		end
 
 		table.insert(config.process, {
@@ -97,20 +86,60 @@ local function darklua_config(ctx: target_context.Identity, array: ActionArray)
 			},
 		})
 
-		table.insert(config.process, "convert_square_root_call")
+		for _, rule_conf in ctx.target_config.darklua_rules do
+			if rule_conf.rule == "AppendTextComment" then
+				table.insert(config.process, {
+					rule = "append_text_comment",
+					text = rule_conf.text,
+					location = rule_conf.location,
+				})
+			elseif rule_conf.rule == "ConvertLocalFunctionToAssign" then
+				table.insert(config.process, {
+					rule = "convert_local_function_to_assign",
+				})
+			elseif rule_conf.rule == "RenameVariables" then
+				table.insert(config.process, {
+					rule = "rename_variables",
+					globals = rule_conf.globals,
+					include_functions = rule_conf.include_functions,
+				})
+			elseif rule_conf.rule == "RemoveNilDeclaration" then
+				table.insert(config.process, {
+					rule = "remove_nil_declaration",
+				})
+			elseif rule_conf.rule == "ConvertSquareRootCall" then
+				table.insert(config.process, {
+					rule = "convert_square_root_call",
+				})
+			elseif rule_conf.rule == "GroupLocalAssignment" then
+				table.insert(config.process, {
+					rule = "group_local_assignment",
+				})
+			elseif rule_conf.rule == "RemoveAssertions" then
+				table.insert(config.process, {
+					rule = "remove_assertions",
+					preserve_argument_side_effects = rule_conf.preserve_arguments_side_effects,
+				})
+			elseif rule_conf.rule == "RemoveDebugProfiling" then
+				table.insert(config.process, {
+					rule = "remove_debug_profiling",
+				})
+			end
+		end
 
 		-- dead code elimination
 		table.insert(config.process, "compute_expression")
 		table.insert(config.process, "remove_unused_if_branch")
 		table.insert(config.process, "remove_unused_variable")
 		table.insert(config.process, "filter_after_early_return")
+		table.insert(config.process, "remove_unused_while")
 		table.insert(config.process, "remove_empty_do")
 
 		virtual_fs.write(ctx:darklua_config_path(), serde.encode("json", config))
 	end)
 end
 
-local function build_project_file(ctx: target_context.Identity, array: ActionArray, exclude_directories: { string })
+local function build_project_file(ctx: target_context.Identity, array: ActionArray, exclude_directories: { string }?)
 	log.debug(`initial: build_project_file`)
 
 	table.insert(array, function()
@@ -118,7 +147,7 @@ local function build_project_file(ctx: target_context.Identity, array: ActionArr
 
 		local input_project_file = virtual_fs.read(ctx:project_file_path("input"))
 
-		for source_name, source_path in ctx.place_representation.config.sources do
+		for source_name, source_path in ctx.target_config.sources do
 			input_project_file = string.gsub(input_project_file, `@{source_name}`, ctx:place_fs_path() .. source_path)
 		end
 
@@ -128,7 +157,9 @@ local function build_project_file(ctx: target_context.Identity, array: ActionArr
 
 		local project_file_dictionary = serde.decode("json", input_project_file)
 
-		project_file_dictionary.globIgnorePaths = exclude_directories
+		if exclude_directories and #exclude_directories >= 1 then
+			project_file_dictionary.globIgnorePaths = exclude_directories
+		end
 
 		virtual_fs.write(ctx:project_file_path("build"), serde.encode("json", project_file_dictionary))
 	end)
@@ -199,7 +230,7 @@ local function blink(ctx: target_context.Identity, array: ActionArray)
 		table.insert(contents, `option ServerOutput = "{ctx:place_fs_path() .. "net"}/server.luau"`)
 		table.insert(contents, `option ClientOutput = "{ctx:place_fs_path() .. "net"}/client.luau"`)
 
-		for _, import_path in ctx.place_representation.config.network_directories do
+		for _, import_path in ctx.target_config.network_directories do
 			log.trace(`getting .blink files under {ctx:root_path() .. import_path}`)
 			local files = get_files_under_dir(ctx:root_path() .. import_path)
 
@@ -212,7 +243,7 @@ local function blink(ctx: target_context.Identity, array: ActionArray)
 
 		virtual_fs.write(ctx:blink_path(), table.concat(contents, "\n"))
 
-		if ctx.subcommand == "dev-server" then
+		if ctx.command == "dev" then
 			external_actions.blink(ctx:blink_path(), false)
 
 			task.spawn(function()
@@ -227,6 +258,10 @@ end
 local function generate_declaration_file(ctx: target_context.Identity, array: ActionArray)
 	log.debug(`initial: generate_declaration_file`)
 
+	if not ctx.target_config.constants then
+		return
+	end
+
 	local open = "declare _G: {\n"
 	local close = "}\n"
 
@@ -235,14 +270,11 @@ local function generate_declaration_file(ctx: target_context.Identity, array: Ac
 	table.insert(array, function()
 		log.debug(`evaluating: generate_declaration_file`)
 
-		for constant, constant_value in ctx.project.constant_decls do
-			local type_str = constant_value.type_str
-			local name = `__{string.upper(constant)}`
-
-			table.insert(type_decls, `\t{name}: {type_str},`)
+		for constant, constant_value in ctx.target_config.constants do
+			table.insert(type_decls, `\t{constant}: {constant_value.type},\n`)
 		end
 
-		local str = table.concat(type_decls, "\n")
+		local str = table.concat(type_decls, "")
 		local file = open .. str .. close
 
 		virtual_fs.write(ctx:globals_types_file(), file)
@@ -257,7 +289,7 @@ local function processing_sourcemap(ctx: target_context.Identity, array: ActionA
 	table.insert(array, function()
 		log.debug(`evaluating: processing_sourcemap`)
 
-		if ctx.subcommand == "dev-server" then
+		if ctx.command == "dev" then
 			task.spawn(function()
 				external_actions.rojo_sourcemap(ctx:project_file_path("processing"), ctx:sourcemap_path("editor"))
 			end)
@@ -283,8 +315,8 @@ local function darklua(ctx: target_context.Identity, array: ActionArray)
 	table.insert(array, function()
 		log.debug(`evaluating: darklua`)
 
-		for _, source_path in ctx.place_representation.config.sources do
-			if ctx.subcommand == "dev-server" then
+		for _, source_path in ctx.target_config.sources do
+			if ctx.command == "dev" then
 				run_on_dir_changed(source_path, function()
 					external_actions.darklua(
 						ctx:root_path() .. source_path,
@@ -308,7 +340,7 @@ local function rojo_serve(ctx: target_context.Identity, array: ActionArray)
 
 	blink(ctx, array)
 	darklua(ctx, array)
-	build_project_file(ctx, array, ctx.place_representation.config.asset_directories)
+	build_project_file(ctx, array, ctx.target_config.asset_directories or {})
 
 	table.insert(array, function()
 		log.debug(`evaluating: rojo_serve`)
@@ -322,7 +354,7 @@ local function rojo_build(ctx: target_context.Identity, array: ActionArray)
 
 	blink(ctx, array)
 	darklua(ctx, array)
-	build_project_file(ctx, array, ctx.place_representation.config.asset_directories)
+	build_project_file(ctx, array, ctx.target_config.asset_directories)
 
 	table.insert(array, function()
 		log.debug(`evaluating: rojo_build`)
@@ -352,7 +384,7 @@ local function build_place(ctx: target_context.Identity, array: ActionArray)
 			built_rbxl = roblox.deserializePlace(virtual_fs.rawread(ctx:rbxl_path("built"))),
 		}
 
-		local dm = ctx.place_representation.config.builder(builder_ctx)
+		local dm = ctx.target_config.builder(builder_ctx)
 
 		virtual_fs.rawwrite(ctx:rbxl_path("output"), roblox.serializePlace(dm))
 	end)
@@ -379,7 +411,7 @@ local function generation(ctx: target_context.Identity)
 
 	if ctx.command == "build" then
 		build_place(ctx, array)
-	elseif ctx.command == "dev-server" then
+	elseif ctx.command == "dev" then
 		rojo_serve(ctx, array)
 	elseif ctx.command == "install-dependencies" then
 		install_dependencies(ctx, array)

@@ -2,22 +2,19 @@ local api = require("@definitions/api")
 local fs = require("@lune/fs")
 local luau = require("@lune/luau")
 local task = require("@lune/task")
+local public_api = require("@self/public_api")
+
 export type Project = {
 	rbxl_decls: { [string]: api.RbxlConfig },
 }
 
 local runtime = {}
 
-function runtime.init()
+function runtime.run_rmake_file(passed_options: { [string]: string }): public_api.Identity
 	local file_contents = fs.readFile("./rmake.luau")
 	local bytecode = luau.compile(file_contents)
 
-	local targets = {}
-
-	local rmake_env = {
-		declare_target = target_stuff.f,
-		declare_rbxl = rbxl.new,
-	}
+	local api = public_api.new(passed_options)
 
 	local runner = luau.load(bytecode, {
 		environment = {
@@ -25,7 +22,7 @@ function runtime.init()
 				if string.sub(path, 1, 5) == "@lune" then
 					return (require :: any)(path)
 				elseif path == "@rmake" then
-					return rmake_env
+					return api:create_table()
 				end
 
 				return error("unsupported require at the moment")
@@ -33,15 +30,9 @@ function runtime.init()
 		},
 	})
 
-	print("meow")
-	local success, err = pcall(runner)
-	print(success, err)
-	print(target_stuff.targets)
-end
+	runner()
 
-task.spawn(function()
-	print("bruh")
-	runtime.init()
-end)
+	return api
+end
 
 return runtime

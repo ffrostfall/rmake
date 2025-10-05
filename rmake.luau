@@ -1,7 +1,13 @@
 local rmake = require("@rmake")
+local fs = require("@lune/fs")
 
-local rbxl = rmake.declare_rbxl({ ... })
+local value = rmake.define_option("SomeFlagThing")
 
-rmake.declare_target("production", {
-	rbxl.g,
+rmake.define_rbxl("game", {
+	constants = {
+		["RELEASE_MODE"] = {
+			type = `"release" | "debug"`,
+			value = value,
+		},
+	},
 })

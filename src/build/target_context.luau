@@ -34,9 +34,7 @@ local function constructor(command: Command, identifier: string, config: api.Rbx
 	self.command = command
 	self.identifier = identifier
 
-	self.target_config = {
-		sources = {},
-	}
+	self.target_config = config
 
 	return self
 end

@@ -1,12 +1,12 @@
-local fs = require("@lune/fs")
 local process = require("@lune/process")
 local setup = require("@src/cli/setup")
-local generation = require("@src/generation")
-local target_context = require("@src/generation/target_context")
-local interface = require("@src/interface")
+local build = require("@src/build")
+local target_context = require("@src/build/target_context")
+local runtime = require("@src/runtime")
 local styling = require("@src/util/styling")
 local cli_parser = require("@src/util/cli_parser")
-local log = require("@src/util/log")
+local parse_json5 = require("@src/util/parse_json5")
+
 local help_color = styling.color.magenta_bright
 
 local function hpfx_print(text: string)
@@ -27,53 +27,47 @@ local function cli()
 
 	parser:add("target", "positional", {
 		aliases = {},
-		required = false,
-		help = "meow",
-		default = "idk",
-	})
+		default = "target place",
 
-	parser:add("release", "flag", {
-		aliases = { "rel" },
+		help = "target place",
+
 		required = false,
 	})
 
-	parser:add("debug", "flag", {
-		aliases = { "deb" },
-		required = false,
-	})
-
-	parser:add("verbose", "flag", {
-		aliases = { "v" },
-		required = false,
+	parser:add("option", "option", {
+		aliases = { "f" },
+		default = "{}",
+		help = "Passed options",
 	})
 
 	parser:parse(process.args)
 
-	if parser:has("verbose") then
-		log.info("verbose mode enabled")
-		log.level = 0
+	local subcommand = parser:get("subcommand")
+	local passed_options = parse_json5(parser:get("option"))
+
+	if subcommand == "help" then
+		print(parser:help())
+		return
+	elseif subcommand == "setup" then
+		setup()
+		return
 	end
 
-	local subcommand = parser:get("subcommand")
+	assert(type(passed_options) == "table")
+	passed_options = passed_options :: { [string]: string }
+
+	local result = runtime.run_rmake_file(passed_options)
 
 	if subcommand == "dev" then
-		local project = interface.run(fs.readFile("./rmake.luau"))
-
 		local place = parser:get("target")
 		if not place then
 			hpfx_print("must specify target place")
 			return
 		end
 
-		local ctx = target_context.new({
-			build_mode = if parser:has("release") then "release" else "debug",
-			environment_mode = "local",
-			target_place = place,
+		local ctx = target_context.new("dev", place, result:index_config(place))
 
-			subcommand = "dev-server",
-		}, project)
-
-		generation(ctx)
+		build(ctx)
 	elseif subcommand == "push" then
 		local place = parser:get("target")
 		if not place then
@@ -81,17 +75,9 @@ local function cli()
 			return
 		end
 
-		local project = interface.run(fs.readFile("./rmake.luau"))
+		local ctx = target_context.new("push", place, result:index_config(place))
 
-		local ctx = target_context.new({
-			build_mode = if parser:has("debug") then "debug" else "release",
-			environment_mode = "local",
-			target_place = place,
-
-			subcommand = "push",
-		}, project)
-
-		generation(ctx)
+		build(ctx)
 	elseif subcommand == "build" then
 		local place = parser:get("target")
 		if not place then
@@ -99,24 +85,12 @@ local function cli()
 			return
 		end
 
-		local project = interface.run(fs.readFile("./rmake.luau"))
+		local ctx = target_context.new("build", place, result:index_config(place))
 
-		local ctx = target_context.new({
-			build_mode = if parser:has("release") then "release" else "debug",
-			environment_mode = "local",
-			target_place = place,
-
-			subcommand = "local-build",
-		}, project)
-
-		generation(ctx)
-	elseif subcommand == "check" then
-		error("unimplemented")
-	elseif subcommand == "setup" then
-		setup()
-	else
-		print(parser:help())
+		build(ctx)
 	end
+
+	return
 end
 
 return cli

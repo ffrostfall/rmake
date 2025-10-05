@@ -9,6 +9,9 @@ local roblox = require("@lune/roblox")
 --stylua: ignore
 --[[ EXPORT ]] export type RbxlBuilder = (ctx: BuilderContext) -> roblox.DataModel
 
+--stylua: ignore
+--[[ EXPORT ]] export type Constant = { type: string, value: unknown, }
+
 export type DarkluaRule =
 	| {
 		rule: "AppendTextComment",
@@ -16,16 +19,10 @@ export type DarkluaRule =
 		text: string,
 	}
 	| {
-		rule: "ComputeExpression",
-	}
-	| {
 		rule: "ConvertLocalFunctionToAssign",
 	}
 	| {
 		rule: "ConvertSquareRootCall",
-	}
-	| {
-		rule: "FilterAfterEarlyReturn",
 	}
 	| {
 		rule: "GroupLocalAssignment",
@@ -38,23 +35,12 @@ export type DarkluaRule =
 		rule: "RemoveDebugProfiling",
 	}
 	| {
-		rule: "RemoveEmptyDo",
-	}
-	| {
 		rule: "RemoveNilDeclaration",
-	}
-	| {
-		rule: "RemoveUnusedIfBranch",
 	}
 	| {
 		rule: "RenameVariables",
 		include_functions: boolean,
-	}
-	| {
-		rule: "RemoveUnusedVariable",
-	}
-	| {
-		rule: "RemoveUnusedWhile",
+		globals: { string },
 	}
 
 --stylua: ignore
