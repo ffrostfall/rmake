@@ -1,13 +1,21 @@
+local fs = require("@lune/fs")
 local process = require("@lune/process")
-local setup = require("@src/cli/setup")
+local serde = require("@lune/serde")
 local build = require("@src/build")
 local target_context = require("@src/build/target_context")
+local included_definitions = require("@src/included_definitions")
 local runtime = require("@src/runtime")
 local styling = require("@src/util/styling")
 local cli_parser = require("@src/util/cli_parser")
 local parse_json5 = require("@src/util/parse_json5")
+local user_path = require("@src/util/user_path")
 
 local help_color = styling.color.magenta_bright
+local setup_color = styling.color.blue_bright
+
+local function spfx_print(text: string)
+	print(setup_color(`{styling.modifier.bold("[setup]")} {text}`))
+end
 
 local function hpfx_print(text: string)
 	print(help_color(`{styling.modifier.bold("[help]")} {text}`))
@@ -45,11 +53,37 @@ local function cli()
 	local subcommand = parser:get("subcommand")
 	local passed_options = parse_json5(parser:get("option"))
 
-	if subcommand == "help" then
-		print(parser:help())
+	if subcommand == "help" or not subcommand then
+		hpfx_print("Usage: rmake <subcommand> <options>")
+		hpfx_print("")
+		hpfx_print("Subcommands:")
+		hpfx_print("\t- push <target>")
+		hpfx_print("\t\tOptions: --options <JSON5 struct>")
+		hpfx_print("\t- setup")
+		hpfx_print("\t- build <target>")
+		hpfx_print("\t\tOptions: --options <JSON5 struct>")
+		hpfx_print("\t- dev <target>")
+		hpfx_print("\t\tOptions: --options <JSON5 struct>")
+		hpfx_print("\t- install-dependencies")
+		hpfx_print("")
 		return
 	elseif subcommand == "setup" then
-		setup()
+		fs.writeDir(`{user_path}/.rmake/`)
+		fs.writeFile(`{user_path}/.rmake/rmake.luau`, included_definitions)
+		fs.writeFile(
+			`{user_path}/.rmake/.luaurc`,
+			serde.encode("json", {
+				languageMode = "strict",
+
+				aliases = {
+					lune = "~/.lune/.typedefs/0.10.1/",
+				},
+			})
+		)
+
+		spfx_print("successfully set up type definitions in the user directory")
+		spfx_print("add the following to your .luaurc for intellisense:")
+		spfx_print(`\t\t"rmake": "~/.rmake/"`)
 		return
 	end
 

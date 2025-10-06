@@ -5,7 +5,7 @@ local virtual_fs = require("./virtual_fs")
 export type SourcemapType = "packages" | "processing" | "editor"
 export type ProjectFileType = "input" | "packages" | "build" | "processing"
 export type RbxlType = "built" | "base" | "output"
-export type Command = "dev" | "install-dependencies" | "build"
+export type Command = "dev" | "install-dependencies" | "build" | "push"
 
 local function absolute_from_cwd_relative(path: string)
 	if string.sub(path, 1, 1) == "/" then

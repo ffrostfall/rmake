@@ -430,6 +430,8 @@ local function generation(ctx: target_context.Identity)
 	for i = 1, #array do
 		array[i]()
 	end
+
+	virtual_fs.done()
 end
 
 return generation
