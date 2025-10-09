@@ -7,7 +7,6 @@ local included_definitions = require("@src/included_definitions")
 local runtime = require("@src/runtime")
 local styling = require("@src/util/styling")
 local cli_parser = require("@src/util/cli_parser")
-local parse_json5 = require("@src/util/parse_json5")
 local user_path = require("@src/util/user_path")
 
 local help_color = styling.color.magenta_bright
@@ -42,8 +41,8 @@ local function cli()
 		required = false,
 	})
 
-	parser:add("option", "option", {
-		aliases = { "f" },
+	parser:add("options", "option", {
+		aliases = {},
 		default = "{}",
 		help = "Passed options",
 	})
@@ -51,7 +50,7 @@ local function cli()
 	parser:parse(process.args)
 
 	local subcommand = parser:get("subcommand")
-	local passed_options = parse_json5(parser:get("option"))
+	local passed_options = serde.decode("json", parser:get("options"))
 
 	if subcommand == "help" or not subcommand then
 		hpfx_print("Usage: rmake <subcommand> <options>")
@@ -120,6 +119,16 @@ local function cli()
 		end
 
 		local ctx = target_context.new("build", place, result:index_config(place))
+
+		build(ctx)
+	elseif subcommand == "install-dependencies" then
+		local place = parser:get("target")
+		if not place then
+			hpfx_print("must specify target place")
+			return
+		end
+
+		local ctx = target_context.new("install-dependencies", place, result:index_config(place))
 
 		build(ctx)
 	end
