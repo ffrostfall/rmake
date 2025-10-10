@@ -7,7 +7,7 @@ local function run_on_dir_changed(path: string, callback: () -> ()): thread
 	local last_modified = {}
 
 	for _, path in get_files_under_dir(path) do
-		last_modified[path] = fs.metadata(path).modifiedAt
+		last_modified[path] = 0
 	end
 
 	log.trace(`set up watcher for path {path}`)
