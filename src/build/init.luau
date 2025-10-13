@@ -40,6 +40,8 @@ local function processing_project_file(ctx: target_context.Identity, array: Acti
 
 		input_project_file = string.gsub(input_project_file, "\\", "/")
 
+		input_project_file = string.gsub(input_project_file, "$network", ctx:place_fs_path() .. "/net")
+
 		virtual_fs.write(ctx:project_file_path("processing"), input_project_file)
 	end)
 end

@@ -7,7 +7,7 @@ local included_definitions = require("@src/included_definitions")
 local runtime = require("@src/runtime")
 local styling = require("@src/util/styling")
 local cli_parser = require("@src/util/cli_parser")
-local user_path = require("@src/util/user_path")
+local log = require("@src/util/log")
 
 local help_color = styling.color.magenta_bright
 local setup_color = styling.color.blue_bright
@@ -47,10 +47,27 @@ local function cli()
 		help = "Passed options",
 	})
 
+	parser:add("verbose", "option", {
+		aliases = { "v" },
+	})
+
 	parser:parse(process.args)
 
+	if parser:get("verbose") then
+		log.level = tonumber(parser:get("verbose")) or 4
+	end
+
 	local subcommand = parser:get("subcommand")
-	local passed_options = serde.decode("json", parser:get("options"))
+	local passed_options_str = parser:get("options")
+	local options = {}
+
+	if passed_options_str then
+		for _, value in string.split(passed_options_str, ",") do
+			local pack = string.split(value, "=")
+
+			options[pack[1]] = pack[2]
+		end
+	end
 
 	if subcommand == "help" or not subcommand then
 		hpfx_print("Usage: rmake <subcommand> <options>")
@@ -64,9 +81,10 @@ local function cli()
 		hpfx_print("\t- dev <target>")
 		hpfx_print("\t\tOptions: --options <JSON5 struct>")
 		hpfx_print("\t- install-dependencies")
-		hpfx_print("")
 		return
 	elseif subcommand == "setup" then
+		local user_path = if _G.__OS == "windows" then process.env["HOME"] else "~/"
+
 		fs.writeDir(`{user_path}/.rmake/`)
 		fs.writeFile(`{user_path}/.rmake/rmake.luau`, included_definitions)
 		fs.writeFile(
@@ -86,10 +104,7 @@ local function cli()
 		return
 	end
 
-	assert(type(passed_options) == "table")
-	passed_options = passed_options :: { [string]: string }
-
-	local result = runtime.run_rmake_file(passed_options)
+	local result = runtime.run_rmake_file(options)
 
 	if subcommand == "dev" then
 		local place = parser:get("target")
