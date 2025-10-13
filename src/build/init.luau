@@ -38,9 +38,9 @@ local function processing_project_file(ctx: target_context.Identity, array: Acti
 
 		input_project_file = string.gsub(input_project_file, "%./", ctx:root_path())
 
-		input_project_file = string.gsub(input_project_file, "\\", "/")
-
 		input_project_file = string.gsub(input_project_file, "$network", ctx:place_fs_path() .. "/net")
+
+		input_project_file = string.gsub(input_project_file, "\\", "/")
 
 		virtual_fs.write(ctx:project_file_path("processing"), input_project_file)
 	end)
@@ -154,6 +154,8 @@ local function build_project_file(ctx: target_context.Identity, array: ActionArr
 		end
 
 		input_project_file = string.gsub(input_project_file, "%./", ctx:root_path())
+
+		input_project_file = string.gsub(input_project_file, "$network", ctx:place_fs_path() .. "/net")
 
 		input_project_file = string.gsub(input_project_file, "\\", "/")
 
